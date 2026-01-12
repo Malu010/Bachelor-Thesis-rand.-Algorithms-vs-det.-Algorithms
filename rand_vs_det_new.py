@@ -2,6 +2,7 @@ import numpy as np
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.fftpack import dct
 #------------- Randomized SVD -------------
 def rand_svd (A, n_components, n_iter = 5, oversample=10):
     k_p = n_components + oversample # Etwas mehr Dimensionen für bessere Approximation
