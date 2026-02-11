@@ -54,7 +54,7 @@ def deterministic_svd(A, n_components, max_iter=100, tol=1e-5):
         V, _ = np.linalg.qr(V, mode='reduced')
         
         # Einfacher Konvergenz-Check (Winkel zwischen Unterräumen)
-        # Wir nutzen die Projektion: Wenn V und V_old gleich sind, ist die Norm ~ k
+        # Wenn V und V_old gleich sind, ist die Norm ~ k
         if i > 0: # Erst ab zweiter Iteration prüfen
             #  Frobenius Norm der Differenz
             # abs wegen Vorzeichen (unterschiedliche Richtungen sind egal, nur Winkel zählt)
