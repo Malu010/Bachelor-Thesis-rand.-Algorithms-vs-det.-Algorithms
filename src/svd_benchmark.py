@@ -1,291 +1,160 @@
 import numpy as np
 import time
-import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.ticker import PercentFormatter
 import rand_vs_det_new as rvd  
-# k muss = lenght sein
-# k ist die Anzahl der dominanten Singulärwerte
-# length ist die Gesamtanzahl der Singulärwerte
-def generate_large_matrix(m, n, length=200):
-    # Orthogonale Matrizen (randomisiert)
-    U = np.linalg.qr(np.random.randn(m, length))[0]
-    V = np.linalg.qr(np.random.randn(n, length))[0]
+
+# --- Configuration & Constants ---
+MATRIX_ROWS = 1000
+MATRIX_COLS = 1000
+SEED = 42
+
+def generate_low_rank_matrix(m, n, rank=200):
+    """
+    Generates a large matrix with rapidly decaying singular values 
+    to simulate real-world low-rank data.
+    """
+    np.random.seed(SEED)
+    # Generate orthogonal matrices
+    U = np.linalg.qr(np.random.randn(m, rank))[0]
+    V = np.linalg.qr(np.random.randn(n, rank))[0]
     
-    # Schnell abfallende Singulärwerte von 1e4 bis 1e-3
-    sing_vals = np.geomspace(1e4, 1e-3, num=length) 
+    # Rapidly decaying singular values from 1e4 down to 1e-3
+    sing_vals = np.geomspace(1e4, 1e-3, num=rank) 
     
-    # Low-Rank-Matrix A = U * Sigma * V^T
+    # Construct A = U * Sigma * V^T
     Sigma = np.diag(sing_vals)
     A = U @ Sigma @ V.T
-    
-    return A  
+    return A
 
-#-- Rekonstruktionsfehler ---
-def rel_error_rand(A, u_rand, s_rand, vt_rand):
-        norm_A = np.linalg.norm(A, 'fro')
-        A_reconstructed_rand = u_rand @ np.diag(s_rand) @ vt_rand
-        norm_error = np.linalg.norm(A - A_reconstructed_rand, 'fro')  # ||A - A_k||_F
-        relative_error = (norm_error / norm_A)*100
-        return relative_error  
-      
-def benchmark():
-    rows, cols = 1000, 1000 
-    n_comp =  300            
-    n_comp2 = 15
-    n_comp3 = 1
-    # Matrix mit schnell abfallenden Singulärwerten generieren
-    np.random.seed(42)
-    # k sind die dominanten Singulärwerte
-    A = generate_large_matrix(rows, cols)
-    # Gausssche Zufallsmatrix
-    A2 = np.random.randn(rows, cols)
-    #--------------------------
-    print(f"--- Benchmark Start ---")
-    print(f"Matrix Dimension: {rows}x{cols}")
-    print(f"Gesuchte Komponenten (n_components): {n_comp}")
+def calculate_reconstruction_error(A, U, S, Vt):
+    """
+    Computes the relative Frobenius norm error between the original matrix A 
+    and its low-rank approximation.
+    """
+    norm_A = np.linalg.norm(A, 'fro')
+    # Reconstruct approximation
+    A_approx = U @ np.diag(S) @ Vt
     
-    #Benchmark rand. n_comp
-    print(f"Running Randomized SVD comp= {n_comp}...")
-    start = time.time()
-    u_rand, s_rand, vt_rand = rvd.rand_svd(A, n_components=n_comp)
-    end = time.time()
-    relative_error_rand = rel_error_rand(A, u_rand, s_rand, vt_rand)
-    
-    #-------Fehlermessung randomized SVD
-    
-    
-    # n_comp2
-    print(f"Running Randomized SVD comp= {n_comp2}...")
-    start2 = time.time()
-    u_rand, s_rand, vt_rand = rvd.rand_svd(A, n_components=n_comp2)
-    end2 = time.time()
-    relative_error_rand2 = rel_error_rand(A, u_rand, s_rand, vt_rand)
-    # n_comp3
-    print(f"Running Randomized SVD comp= {n_comp3}...")
-    start3 = time.time()
-    u_rand, s_rand, vt_rand = rvd.rand_svd(A, n_components=n_comp3)
-    end3 = time.time()
-    relative_error_rand3 = rel_error_rand(A, u_rand, s_rand, vt_rand)
-    
-      
-    #Benchmark det.
-    print(f"Running Deterministic SVD comp= full...")
-    start_det = time.time()
-    u_det, s_det, vt_det = rvd.deterministic_svd(A, n_components=n_comp)
-    end_det = time.time()
-    
+    norm_error = np.linalg.norm(A - A_approx, 'fro')
+    relative_error_percent = (norm_error / norm_A) * 100
+    return relative_error_percent
 
-    # Zufällige Matrix erstellen
-    #np.random.seed(42)
-    #A = np.random.randint(low=-100, high=100, size=(rows, cols))
+def run_svd_experiment(algorithm_func, A, n_components, **kwargs):
+    """
+    Helper function to run a single SVD execution and measure time/error.
+    """
+    start_time = time.time()
+    U, S, Vt = algorithm_func(A, n_components=n_components, **kwargs)
+    duration = time.time() - start_time
     
-    #--- Randomized SVD Benchmark n = 150---
-    
-    #print(f"Running Randomized SVD comp = {n_comp}...")
-    #start = time.time()
-    #u_rand, s_rand, vt_rand = rvd.rand_svd(A, n_components=n_comp)
-    #end = time.time()
-    
-    
+    error = calculate_reconstruction_error(A, U, S, Vt)
+    return duration, error
 
-    #-------Fehlermessung randomized SVD
-    print(f"Randomized SVD (n_components={n_comp}) took {end - start:.2f} seconds with reconstruction error {relative_error_rand:.2f}%")
-    print(f"Randomized SVD (n_components={n_comp2}) took {end2 - start2:.2f} seconds with reconstruction error {relative_error_rand2:.2f}%")
-    print(f"Randomized SVD (n_components={n_comp3}) took {end3 - start3:.2f} seconds with reconstruction error {relative_error_rand3:.2f}%")
-    #-------Fehlermessung deterministic SVD
-    def rel_error_det(A, u_det, s_det, vt_det):
-        norm_A = np.linalg.norm(A, 'fro')
-        A_reconstructed_det = u_det @ np.diag(s_det) @ vt_det
-        norm_error_det = np.linalg.norm(A - A_reconstructed_det, 'fro')
-        relative_error_det = (norm_error_det / norm_A)*100
-        return relative_error_det
-    print(f"Deterministic SVD (n_components={cols}) took {end_det - start_det:.2f} seconds with reconstruction error {rel_error_det(A, u_det, s_det, vt_det):.2f}%")
-    
-    
-    #----- Entwicklung der Genauigkeit bei verschiedenen n_components mit Plots-----
-    n_components_results = []
-    components_amount = []
-    
+def run_complexity_analysis(A, algorithm_func, param_list, x_metric='rank', **kwargs):
     """
-    def exp_comp_vs_error(start, end, step, n_iter, oversample):    
-        for n in range(start, end, step):
-            u_rand, s_rand, vt_rand = rvd.rand_svd(A, n_components=n, n_iter=n_iter, oversample=oversample)
-            relative_error_rand = rel_error_rand(A, u_rand, s_rand, vt_rand)
-            n_components_results.append((relative_error_rand))
-            print(f"n_components = {n}, Rel. Fehler = {relative_error_rand:2f}%")
-            components_amount.append(n)
-            if relative_error_rand < 1:
-                break
-        return components_amount, n_components_results    
-    n_components_results_scaled = [error / 100 for error in n_components_results] 
-    components_amount, n_components_results = [], []
-    x1, y1 = exp_comp_vs_error(1, 1001, 5, 0, 0)
-    components_amount, n_components_results = [], []  # Reset
-    x2, y2 = exp_comp_vs_error(1, 1001, 5, 0, 5)
-    components_amount, n_components_results = [], []  # Reset
-    x3, y3 = exp_comp_vs_error(1, 1001, 5, 5, 5)
-    components_amount, n_components_results = [], []  # Reset
-    x4, y4 = exp_comp_vs_error(1, 1001, 5, 50, 50)
-    plt.figure(figsize=(8, 6))
-    plt.plot(x1, y1, label="q=0, p=0")
-    plt.plot(x2, y2, label="q=0, p=5") 
-    plt.plot(x3, y3, label="q=5, p=5")
-    plt.plot(x4, y4, label="q=50, p=50")
-
-    plt.ylabel('Rekonstruktionsfehler in Decimal')
-    plt.xlabel('Rang der Approximation k')
-    plt.title(f'Rekonstruktionsfehler vs. Rang der Approximation bei Randomized SVD mit p und q \n ({rows}x{cols} Matrix) length=200')
-    plt.grid(True)
-    plt.legend()
-    plt.show()
+    Runs a series of tests iterating over a parameter (e.g., rank or iterations).
+    
+    :param x_metric: 'rank' (x-axis = n_components) or 'time' (x-axis = duration)
     """
-    """
-    def exp_comp_vs_time(start, end, step, n_iter, oversample):
-        time_list = [0.0]
-        for n in range(start, end, step):
-            start = time.time()
-            u_rand, s_rand, vt_rand = rvd.rand_svd(A, n_components=n)
-            end = time.time()
-            time_taken = end - start
-            if time_taken < time_list[-1]:
-                time_taken = time_list[-1] + 0.01  
-            if time_list[0] == 0.0:
-                del time_list[0]  
-            relative_error_rand = rel_error_rand(A, u_rand, s_rand, vt_rand)
-            n_components_results.append((relative_error_rand))
-            print(f"n_components = {n}, Dauer = {time_taken:.2f} seconds")
-            time_list.append(time_taken)
-            components_amount.append(n)
-            if relative_error_rand < 1.0:
-                break
-        return time_list, n_components_results    
-    n_components_results_scaled = [error / 100 for error in n_components_results] 
-    components_amount, n_components_results = [], []
-    x1, y1 = exp_comp_vs_time(1, 1001, 1, 5, 5)
+    x_values = []
+    y_errors = []
     
-    components_amount, n_components_results = [], []  # Reset
-    x2, y2 = exp_comp_vs_time(1, 1001, 1, 0, 5)
-    components_amount, n_components_results = [], []  # Reset
-    x3, y3 = exp_comp_vs_time(1, 1001, 1, 5, 5)
-    components_amount, n_components_results = [], []  # Reset
-    x4, y4 = exp_comp_vs_time(1, 1001, 1, 50, 50)
+    print(f"Running analysis for {algorithm_func.__name__}...")
     
-    plt.figure(figsize=(8, 6))
-    plt.plot(x1, y1)
-    
-    plt.plot(x2, y2, label="q=0, p=5") 
-    plt.plot(x3, y3, label="q=5, p=5")
-    plt.plot(x4, y4, label="q=50, p=50")
-    
-    plt.ylabel('Rekonstruktionsfehler in Decimal')
-    plt.xlabel('Zeit in Sekunden')
-    plt.title(f'Rekonstruktionsfehler vs. Zeit in Sekunden bei Randomized SVD \n ({rows}x{cols} Matrix) length=200')
-    plt.grid(True)
-    plt.legend()
-    plt.show()
-    """
-    
-    
-    #-------------- Ploten für Gausssche Zufallsmatrix --------------
-    """    
-    for n in range(1, 1001, 50):
-        u_rand, s_rand, vt_rand = rvd.rand_svd(A2, n_components=n)
-        relative_error_rand = rel_error_rand(A2, u_rand, s_rand, vt_rand)
-        n_components_results.append((relative_error_rand))
-        print(f"n_components = {n}, Rel. Fehler = {relative_error_rand:2f}%")
-        components_amount.append(n)
-        if relative_error_rand < 1:
-            break
+    for param in param_list:
+        # Determine if we are iterating over components or iterations
+        if 'max_iter' in kwargs and isinstance(kwargs['max_iter'], list):
+             # Special case if we were iterating logic differently, but kept simple here:
+             # Assuming param is always n_components for this loop structure
+             pass
         
-    n_components_results_scaled = [error / 100 for error in n_components_results]
-    
-    n_components_results_scaled = [error / 100 for error in n_components_results] 
-    plt.figure(figsize=(8, 6))
-    plt.plot(components_amount, n_components_results_scaled)
-    plt.ylabel('Rekonstruktionsfehler in Decimal')
-    plt.xlabel('Rang der Approximation k')
-    plt.title(f'Rekonstruktionsfehler vs. Rang der Approximation bei Randomized SVD \n ({rows}x{cols} Matrix)')
-    plt.grid(True)
-    plt.show()   
-    """
-    
-    """
-    time_list = [0.0]
-    for n in range(1, 1001, 1):
-        start = time.time()
-        u_rand, s_rand, vt_rand = rvd.rand_svd(A2, n_components=n, n_iter=5, oversample=5)
-        end = time.time()
-        time_taken = end - start
-        if time_taken < time_list[-1]:
-            time_taken = time_list[-1] + 0.01  
-        if time_list[0] == 0.0:
-            del time_list[0]       
-        relative_error_rand = rel_error_rand(A2, u_rand, s_rand, vt_rand)
-        n_components_results.append((relative_error_rand))
-        print(f"n_components = {n}, Dauer = {time_taken:.2f} seconds")
-        time_list.append(time_taken)
-        components_amount.append(n)
-        if relative_error_rand < 1.0:
+        # Execute SVD
+        duration, error = run_svd_experiment(algorithm_func, A, n_components=param, **kwargs)
+        
+        if x_metric == 'time':
+            # Ensure time is monotonic for plotting (handling super fast executions)
+            current_time = duration
+            if x_values and current_time <= x_values[-1]:
+                current_time = x_values[-1] + 0.001
+            x_values.append(current_time)
+        else:
+            x_values.append(param)
+            
+        y_errors.append(error)
+        
+        # Stop early if error is negligible (optimization)
+        if error < 1e-2: 
             break
-    n_components_results_scaled = [error / 100 for error in n_components_results] 
-    plt.figure(figsize=(8, 6))
-    plt.plot(time_list, n_components_results_scaled)
-    plt.ylabel('Rekonstruktionsfehler in Decimal')
-    plt.xlabel('Zeit in Sekunden')
-    plt.title(f'Rekonstruktionsfehler vs. Zeit in Sekunden bei Randomized SVD \n ({rows}x{cols} gaussche Matrix)')
-    plt.grid(True)
-    plt.show()
-    """
-    
-    def det_exp_comp_vs_error(start, end, step, n_iter):    
-        for n in range(start, end, step):
-            u_det, s_det, vt_det = rvd.deterministic_svd(A, n_components=n, max_iter=n_iter)
-            relative_error_det = rel_error_det(A, u_det, s_det, vt_det)
-            n_components_results.append((relative_error_det))
-            print(f"n_components = {n}, Rel. Fehler = {relative_error_det:2f}%")
-            components_amount.append(n)
-            if relative_error_det < 1:
-                break
-        return components_amount, n_components_results
-    
-    def det_exp_comp_vs_time(start, end, step, n_iter):    
-        time_list = [0.0]
-        for n in range(start, end, step):
-            start = time.time()
-            u_det, s_det, vt_det = rvd.deterministic_svd(A, n_components=n, max_iter=n_iter)
-            end = time.time()
-            time_taken = end - start
-            if time_taken < time_list[-1]:
-                time_taken = time_list[-1] + 0.01  
-            if time_list[0] == 0.0:
-                del time_list[0]  
-            relative_error_det = rel_error_det(A, u_det, s_det, vt_det)
-            n_components_results.append((relative_error_det))
-            print(f"n_components = {n}, Dauer = {time_taken:.2f} seconds")
-            time_list.append(time_taken)
-            components_amount.append(n)
-            if relative_error_det < 1.0:
-                break
-        return time_list, n_components_results  
-    n_components_results_scaled = [error / 100 for error in n_components_results] 
-    components_amount, n_components_results = [], []
-    x1, y1 = det_exp_comp_vs_time(1, 1100, 1, 1)
-    components_amount, n_components_results = [], []  # Reset
-    x2, y2 = det_exp_comp_vs_time(1, 1100, 1, 25)
-    components_amount, n_components_results = [], []  # Reset
-    x3, y3 = det_exp_comp_vs_time(1, 1100, 1, 100)
-    plt.figure(figsize=(8, 6))
-    plt.plot(x1, y1, label="1 Iteration")
-    plt.plot(x2, y2, label="25 Iterationen") 
-    plt.plot(x3, y3, label="100 Iterationen")
+            
+    return x_values, y_errors
 
-    plt.ylabel('Rekonstruktionsfehler in Decimal')
-    plt.xlabel('Zeit in sec')
-    plt.title(f'Rekonstruktionsfehler vs. Zeit bei deterministic SVD\n ({rows}x{cols} Matrix mit exponentiellem Abfall)')
-    plt.grid(True)
+def plot_results(data_series, title, xlabel, ylabel="Reconstruction Error (%)"):
+    """
+    Generic plotting function.
+    data_series: List of tuples (x_values, y_values, label_string)
+    """
+    plt.figure(figsize=(10, 6))
+    for x, y, label in data_series:
+        plt.plot(x, y, label=label, marker='o', markersize=3)
+    
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.grid(True, which="both", ls="--")
     plt.legend()
-    plt.show() 
+    plt.show()
+
+# --- Main Benchmark Routine ---
+def run_full_benchmark():
+    print("--- Initializing Benchmark Suite ---")
+    
+    # 1. Data Generation
+    print("Generating Synthetic Matrix...")
+    A = generate_low_rank_matrix(MATRIX_ROWS, MATRIX_COLS)
+    # Optional: Gaussian Matrix
+    # A_gauss = np.random.randn(MATRIX_ROWS, MATRIX_COLS)
+    
+    print(f"Matrix Shape: {A.shape}")
+
+    # 2. Single Point Comparisons (Sanity Check)
+    check_ranks = [300, 15, 1]
+    print("\n--- Single Point Checks (Randomized SVD) ---")
+    for k in check_ranks:
+        dur, err = run_svd_experiment(rvd.rand_svd, A, n_components=k)
+        print(f"k={k}: {dur:.4f}s | Error: {err:.4f}%")
+
+    # 3. Experiment: Deterministic SVD (Error vs Time)
+    # Comparing different max_iter settings for the deterministic alg (if applicable)
+    # Assuming deterministic_svd takes max_iter, otherwise remove kwargs
+    print("\n--- Experiment: Deterministic SVD Performance ---")
+    ranks_to_test = range(1, 1100, 1)
+    
+    # Run 1: 1 Iteration
+    x1, y1 = run_complexity_analysis(A, rvd.deterministic_svd, ranks_to_test, x_metric='time', max_iter=1)
+    # Run 2: 25 Iterations
+    x2, y2 = run_complexity_analysis(A, rvd.deterministic_svd, ranks_to_test, x_metric='time', max_iter=25)
+    
+    plot_results(
+        [(x1, y1, "Det. SVD (1 Iter)"), (x2, y2, "Det. SVD (25 Iter)")],
+        title=f"Deterministic SVD: Error vs. Time\n({MATRIX_ROWS}x{MATRIX_COLS} Matrix)",
+        xlabel="Time (seconds)"
+    )
+
+    # 4. Experiment: Randomized SVD (Error vs Rank)
+    # Comparing different oversampling (p) and power iterations (q)
+    print("\n--- Experiment: Randomized SVD Parameter Tuning ---")
+    ranks_rand = range(1, 300, 1)
+    
+    # Config A: q=0, p=0
+    xa, ya = run_complexity_analysis(A, rvd.rand_svd, ranks_rand, x_metric='rank', n_iter=0, oversample=0)
+    # Config B: q=2, p=5
+    xb, yb = run_complexity_analysis(A, rvd.rand_svd, ranks_rand, x_metric='rank', n_iter=2, oversample=5)
+    
+    plot_results(
+        [(xa, ya, "Rand SVD (q=0, p=0)"), (xb, yb, "Rand SVD (q=2, p=5)")],
+        title="Randomized SVD: Error Convergence by Rank",
+        xlabel="Rank (k)"
+    )
 
 if __name__ == "__main__":
-    benchmark()  # --  
+    run_full_benchmark()
