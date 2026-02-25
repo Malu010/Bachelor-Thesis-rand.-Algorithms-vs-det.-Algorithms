@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.fftpack import dct
 #------------- Randomized SVD -------------
-def rand_svd (A, n_components, n_iter = 5, oversample=10):
+def rand_svd (A, n_components, n_iter = 2, oversample=10):
     k_p = n_components + oversample # Etwas mehr Dimensionen für bessere Approximation
     rand_matrix = np.random.randn(A.shape[1], k_p) # Zufällige Normalverteilte Matrix mit weniger Spalten als die Originalmatrix
     y = A @ rand_matrix # Projektion der Originalmatrix auf die Zufallsmatrix (Skizzierung)
