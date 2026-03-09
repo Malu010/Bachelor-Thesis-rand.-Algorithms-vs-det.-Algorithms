@@ -84,7 +84,7 @@ fig.text(0.72, 0.95, "Ohne Power Iterations",
 
 plt.tight_layout()
 plt.subplots_adjust(top=0.88, left=0.05) # Platz für Header lassen
-plt.savefig('rsvd_eigenfaces_depth_comparison.png', dpi=300)
+plt.savefig('results/rsvd_eigenfaces_depth_comparison.png', dpi=300)
 plt.show()
 
 # --- ZUSATZ: Quantitativer Vergleich (Euklidische Distanz) ---
@@ -141,7 +141,7 @@ for idx in [0, 9, 49]:
     ax_dist.text(idx+1.5, ax_dist.get_ylim()[1]*0.8, f'{idx+1}. EF', color='gray', fontsize=10)
 
 plt.tight_layout()
-plt.savefig('rsvd_quantitative_distance.png', dpi=300)
+plt.savefig('results/rsvd_quantitative_distance.png', dpi=300)
 plt.show()
 
 
