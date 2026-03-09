@@ -220,7 +220,7 @@ def plot_compression_methods_comparison(original_img, epsilon=0.01):
     c = 1 if len(original_img.shape) == 2 else original_img.shape[2]
     original_kb = (m * n * c) / 1024
     
-    k_values = list(range(10, 310, 30))
+    k_values = list(range(10, 600, 30))
     
     # Listen für die 3 Methoden
     s_pure = []

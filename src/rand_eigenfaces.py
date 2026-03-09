@@ -19,7 +19,7 @@ n_comp_calc = 60             # k
 
 # results['method_name'][seed] = vt_matrix
 results = {
-    'stable': {},   # n_iter = 2
+    'stable': {},   # n_iter = 10
     'unstable': {}  # n_iter = 0
 }
 
@@ -85,6 +85,63 @@ fig.text(0.72, 0.95, "Ohne Power Iterations",
 plt.tight_layout()
 plt.subplots_adjust(top=0.88, left=0.05) # Platz für Header lassen
 plt.savefig('rsvd_eigenfaces_depth_comparison.png', dpi=300)
+plt.show()
+
+# --- ZUSATZ: Quantitativer Vergleich (Euklidische Distanz) ---
+print("Berechne euklidische Distanzen...")
+
+distances_stable = []
+distances_unstable = []
+
+# Matrizen für Seed 1 und Seed 2 extrahieren
+vt_stable_A = results['stable'][seeds[0]]
+vt_stable_B = results['stable'][seeds[1]]
+
+vt_unstable_A = results['unstable'][seeds[0]]
+vt_unstable_B = results['unstable'][seeds[1]]
+
+for i in range(n_comp_calc):
+    # 1. Stabile Version (n_iter = 10)
+    vA_s = vt_stable_A[i]
+    vB_s = vt_stable_B[i]
+    # Vorzeichen-Ambiguität abfangen: min(||vA - vB||, ||vA + (-vB)||)
+    dist_s = min(np.linalg.norm(vA_s - vB_s), np.linalg.norm(vA_s + vB_s))
+    distances_stable.append(dist_s)
+    
+    # 2. Instabile Version (n_iter = 0)
+    vA_u = vt_unstable_A[i]
+    vB_u = vt_unstable_B[i]
+    dist_u = min(np.linalg.norm(vA_u - vB_u), np.linalg.norm(vA_u + vB_u))
+    distances_unstable.append(dist_u)
+
+# Plotting des Graphen
+fig_dist, ax_dist = plt.subplots(figsize=(10, 6))
+
+x_axis = np.arange(1, n_comp_calc + 1) # x-Achse: 1 bis 60
+
+ax_dist.plot(x_axis, distances_unstable, label='Ohne Power Iterations ($q=0$)', 
+             color='red', marker='o', markersize=4, linestyle='-', alpha=0.7)
+ax_dist.plot(x_axis, distances_stable, label='Mit Power Iterations ($q=10$)', 
+             color='blue', marker='s', markersize=4, linestyle='-', alpha=0.8)
+
+# Achsenbeschriftung und Design
+ax_dist.set_title("Euklidische Distanz der Eigenfaces zwischen zwei Random-Seeds", fontsize=14, pad=15)
+ax_dist.set_xlabel("Index des Eigenfaces ($k$)", fontsize=12)
+ax_dist.set_ylabel("Minimale Euklidische Distanz", fontsize=12)
+
+
+# ax_dist.set_yscale('log')
+
+ax_dist.grid(True, linestyle='--', alpha=0.6)
+ax_dist.legend(fontsize=12, loc='upper left')
+
+# Markiere die Indizes der geplotteten Eigenfaces mit vertikalen Linien und Text
+for idx in [0, 9, 49]:
+    ax_dist.axvline(x=idx+1, color='gray', linestyle=':', alpha=0.5)
+    ax_dist.text(idx+1.5, ax_dist.get_ylim()[1]*0.8, f'{idx+1}. EF', color='gray', fontsize=10)
+
+plt.tight_layout()
+plt.savefig('rsvd_quantitative_distance.png', dpi=300)
 plt.show()
 
 
