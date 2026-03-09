@@ -49,16 +49,18 @@ Ensure you have the required packages installed:
 ```bash
 pip install -r requirements.txt
 ```
-### Run the main script to trigger the automated test scenarios:
-```bash
-python benchmark.py
-```
-### What happens?
-​The script performs the following analyses:
+### Which File?
+- **rand vs det new.py:** Implementation of randomized and deterministic
+SVD algorithms.
+- **svd benchmark.py:** Script for performing SVD benchmarks
+(runtime and error comparisons).
+- **mat mult alg.py:** Implementation of deterministic and randomized
+matrix multiplication algorithms and associated benchmarks.
+- **svd compression.py:** Implementation of image compression based on
+SVD, including tests.
+- **rand eigenfaces.py:** Implementation of the Eigenfaces experiment with
+randomized SVD.
+- **rand eigenfaces.py:** Implementation of the Eigenfaces experiment with
+randomized SVD.
 
-- **Data Generation:** Creates a synthetic 1000 \times 1000 matrix with rapidly decaying singular values (simulating real-world datasets).
-- **​Sanity Check:**  Runs quick single-point tests for k=1, 15, 300.
-- **Deterministic Analysis:** Plots Error vs. Time for standard SVD with varying iteration counts.
-- **Randomized Analysis:** Plots Error vs. Rank to demonstrate the impact of oversampling (p) and power iterations (q).
-​The resulting plots will open automatically in separate windows.
 
