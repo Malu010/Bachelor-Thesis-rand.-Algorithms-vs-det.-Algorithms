@@ -49,20 +49,18 @@ Ensure you have the required packages installed:
 ```bash
 pip install -r requirements.txt
 ```
-### Run the main script to trigger the automated test scenarios:
-```bash
-python benchmark.py
-```
 ### Which File?
-• rand vs det new.py: Implementierung der randomisierten und determi-
-nistischen SVD-Algorithmen.
-• svd benchmark.py: Skript zur Durchf¨uhrung der SVD-Benchmarks
-(Laufzeit- und Fehlervergleiche).
-• mat mult alg.py: Implementierung der deterministischen und rando-
-misierten Matrixmultiplikationsalgorithmen sowie zugeh¨origer Bench-
-marks.
-• svd komprimierung.py: Implementierung der Bildkomprimierung auf
-Basis der SVD inklusive Tests.
-• rand eigenfaces.py: Implementierung des Eigenfaces-Experiments mit
-randomisierter SVD.
+- **rand vs det new.py:** Implementation of randomized and deterministic
+SVD algorithms.
+- **svd benchmark.py:** Script for performing SVD benchmarks
+(runtime and error comparisons).
+- **mat mult alg.py:** Implementation of deterministic and randomized
+matrix multiplication algorithms and associated benchmarks.
+- **svd compression.py:** Implementation of image compression based on
+SVD, including tests.
+- **rand eigenfaces.py:** Implementation of the Eigenfaces experiment with
+randomized SVD.
+- **rand eigenfaces.py:** Implementation of the Eigenfaces experiment with
+randomized SVD.
+
 
