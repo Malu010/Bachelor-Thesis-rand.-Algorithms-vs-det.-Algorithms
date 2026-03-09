@@ -53,12 +53,16 @@ pip install -r requirements.txt
 ```bash
 python benchmark.py
 ```
-### What happens?
-​The script performs the following analyses:
-
-- **Data Generation:** Creates a synthetic 1000 \times 1000 matrix with rapidly decaying singular values (simulating real-world datasets).
-- **​Sanity Check:**  Runs quick single-point tests for k=1, 15, 300.
-- **Deterministic Analysis:** Plots Error vs. Time for standard SVD with varying iteration counts.
-- **Randomized Analysis:** Plots Error vs. Rank to demonstrate the impact of oversampling (p) and power iterations (q).
-​The resulting plots will open automatically in separate windows.
+### Which File?
+• rand vs det new.py: Implementierung der randomisierten und determi-
+nistischen SVD-Algorithmen.
+• svd benchmark.py: Skript zur Durchf¨uhrung der SVD-Benchmarks
+(Laufzeit- und Fehlervergleiche).
+• mat mult alg.py: Implementierung der deterministischen und rando-
+misierten Matrixmultiplikationsalgorithmen sowie zugeh¨origer Bench-
+marks.
+• svd komprimierung.py: Implementierung der Bildkomprimierung auf
+Basis der SVD inklusive Tests.
+• rand eigenfaces.py: Implementierung des Eigenfaces-Experiments mit
+randomisierter SVD.
 
