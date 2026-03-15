@@ -26,6 +26,11 @@ def generate_low_rank_matrix(m, n, rank=200):
     A = U @ Sigma @ V.T
     return A
 
+def generate_gaussian_matrix(m, n):
+    """Returns a Gaussian random matrix with fixed seed for reproducibility."""
+    np.random.seed(SEED)
+    return np.random.randn(m, n)
+
 def calculate_reconstruction_error(A, U, S, Vt):
     """
     Computes the relative Frobenius norm error between the original matrix A 
@@ -64,15 +69,12 @@ def run_complexity_analysis(A, algorithm_func, param_list, x_metric='rank', **kw
     for param in param_list:
         # Determine if we are iterating over components or iterations
         if 'max_iter' in kwargs and isinstance(kwargs['max_iter'], list):
-             # Special case if we were iterating logic differently, but kept simple here:
-             # Assuming param is always n_components for this loop structure
              pass
         
         # Execute SVD
         duration, error = run_svd_experiment(algorithm_func, A, n_components=param, **kwargs)
         
         if x_metric == 'time':
-            # Ensure time is monotonic for plotting (handling super fast executions)
             current_time = duration
             if x_values and current_time <= x_values[-1]:
                 current_time = x_values[-1] + 0.001
@@ -82,11 +84,29 @@ def run_complexity_analysis(A, algorithm_func, param_list, x_metric='rank', **kw
             
         y_errors.append(error)
         
-        # Stop early if error is negligible (optimization)
         if error < 1e-2: 
             break
             
     return x_values, y_errors
+
+def run_time_comparison_by_rank(A, ranks, det_kwargs=None, rand_kwargs=None):
+    """
+    Measures wall-clock time for deterministic vs randomized SVD over ranks.
+    Returns two lists aligned with the provided ranks.
+    """
+    det_kwargs = det_kwargs or {}
+    rand_kwargs = rand_kwargs or {}
+    det_times = []
+    rand_times = []
+
+    for k in ranks:
+        det_duration, _ = run_svd_experiment(rvd.deterministic_svd, A, n_components=k, **det_kwargs)
+        rand_duration, _ = run_svd_experiment(rvd.rand_svd, A, n_components=k, **rand_kwargs)
+        det_times.append(det_duration)
+        rand_times.append(rand_duration)
+
+    return det_times, rand_times
+
 
 def plot_results(data_series, title, xlabel, ylabel="Reconstruction Error (%)"):
     """
@@ -122,7 +142,7 @@ def run_full_benchmark():
     for k in check_ranks:
         dur, err = run_svd_experiment(rvd.rand_svd, A, n_components=k)
         print(f"k={k}: {dur:.4f}s | Error: {err:.4f}%")
-
+    """
     # 3. Experiment: Deterministic SVD (Error vs Time)
     # Comparing different max_iter settings for the deterministic alg (if applicable)
     # Assuming deterministic_svd takes max_iter, otherwise remove kwargs
@@ -154,6 +174,26 @@ def run_full_benchmark():
         [(xa, ya, "Rand SVD (q=0, p=0)"), (xb, yb, "Rand SVD (q=2, p=5)")],
         title="Randomized SVD: Error Convergence by Rank",
         xlabel="Rank (k)"
+    )
+    """
+    # 5. Experiment: Time Comparison (Deterministic vs Randomized) by Rank
+    print("\n--- Experiment: Time Comparison (Deterministic vs Randomized) ---")
+    time_ranks = range(1, 510, 20)
+    det_times, rand_times = run_time_comparison_by_rank(
+        A,
+        time_ranks,
+        det_kwargs={"max_iter": 25},
+        rand_kwargs={"n_iter": 2, "oversample": 5},
+    )
+
+    plot_results(
+        [
+            (list(time_ranks), det_times, "Deterministic SVD"),
+            (list(time_ranks), rand_times, "Randomized SVD"),
+        ],
+        title="SVD Laufzeitvergleich nach Rang",
+        xlabel="Rank (k)",
+        ylabel="Zeit (Sekunden)",
     )
 
 if __name__ == "__main__":

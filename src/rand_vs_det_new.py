@@ -11,14 +11,13 @@ def rand_svd (A, n_components, n_iter = 2, oversample=10):
     for _ in range(n_iter): # Power-Iteration: bei jeder Iteration wird die Skizzierung verbessert und Rauschen reduiziert
         y = A.T @ y
         
-        # WICHTIG: Sofort orthogonalisieren!
-        # Das verhindert, dass alle Vektoren in die gleiche Richtung kippen.
+        # Orthogonalisieren, damit die Vektoren nicht kollabieren (alle in die gleiche Richtung kippen)
         y, _ = np.linalg.qr(y, mode='reduced') 
 
         # Projektion zurück in den Spaltenraum
         y = A @ y
         
-        # WICHTIG: Wieder orthogonalisieren!
+        # orthogonalisieren!
         y, _ = np.linalg.qr(y, mode='reduced')
     q, r = np.linalg.qr(y, "reduced") # QR-Zerlegung der skizzierten Matrix
     b = q.T @ A # Reduzierte Matrix durch Projektion der Originalmatrix auf den Orthonormalbasisraum Q (weniger Zeilen)
@@ -53,7 +52,7 @@ def deterministic_svd(A, n_components, max_iter=100, tol=1e-5):
         V = A.T @ U
         V, _ = np.linalg.qr(V, mode='reduced')
         
-        # Einfacher Konvergenz-Check (Winkel zwischen Unterräumen)
+        # Konvergenz-Check (Winkel zwischen Unterräumen)
         # Wenn V und V_old gleich sind, ist die Norm ~ k
         if i > 0: # Erst ab zweiter Iteration prüfen
             #  Frobenius Norm der Differenz
